@@ -1,0 +1,7 @@
+speechbrain
+torch
+torchaudio
+torchvision
+soundfile
+librosa
+matplotlib
