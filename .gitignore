@@ -1,1 +1,4 @@
 venv
+clean
+noisy
+*.pyc
