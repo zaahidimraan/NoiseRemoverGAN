@@ -64,7 +64,7 @@ def increase_SampleRate_write(audio_file, new_sample_rate):
     waveform = resampler(waveform)
     torchaudio.save(audio_file, waveform, new_sample_rate)
 
-# Tested
+## Tested
 # increase sample rate and save on different path with same name in a folder
 def increase_SampleRate_write_folder(new_sample_rate, folder_path):
     for filename in os.listdir(folder_path):
