@@ -52,27 +52,39 @@ def get_audio_files(directory):
                 audio_files.append(os.path.join(root, file))
     return audio_files
 
-
+# ================== Resampling ==================
+## Tested
 # increase sample rate and save on same path with same name
 # audio_file: path to the audio file
 # new_sample_rate: new sample rate
 # return: None
 def increase_SampleRate_write(audio_file, new_sample_rate):
-    waveform, sample_rate = torchaudio.load(audio_file)
+    waveform, sample_rate = load(audio_file)
     resampler = torchaudio.transforms.Resample(orig_freq=sample_rate, new_freq=new_sample_rate)
     waveform = resampler(waveform)
     torchaudio.save(audio_file, waveform, new_sample_rate)
 
+# Tested
+# increase sample rate and save on different path with same name in a folder
+def increase_SampleRate_write_folder(new_sample_rate, folder_path):
+    for filename in os.listdir(folder_path):
+        filepath = os.path.join(folder_path, filename)
+        if os.path.isfile(filepath) and filename.endswith('.wav'):
+            if get_sample_rate(filepath) != new_sample_rate:
+                increase_SampleRate_write(filepath, new_sample_rate)
 
 # increase sample rate and return waveform
 # audio_file: path to the audio file
 # new_sample_rate: new sample rate
 # return: waveform
 def increase_SampleRate_read(audio_file, new_sample_rate):
-    waveform, sample_rate = torchaudio.load(audio_file)
+    waveform, sample_rate = load(audio_file)
     resampler = torchaudio.transforms.Resample(orig_freq=sample_rate, new_freq=new_sample_rate)
     waveform = resampler(waveform)
     return waveform
+
+
+
 
 ## Tested
 # plot waveform
