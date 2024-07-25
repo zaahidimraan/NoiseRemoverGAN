@@ -58,26 +58,26 @@ def get_audio_files(directory):
 # audio_file: path to the audio file
 # new_sample_rate: new sample rate
 # return: None
-def increase_SampleRate_write(audio_file, new_sample_rate):
+def reshape_SampleRate_write(audio_file, new_sample_rate):
     waveform, sample_rate = load(audio_file)
     resampler = torchaudio.transforms.Resample(orig_freq=sample_rate, new_freq=new_sample_rate)
     waveform = resampler(waveform)
     torchaudio.save(audio_file, waveform, new_sample_rate)
-
+    
 ## Tested
 # increase sample rate and save on different path with same name in a folder
-def increase_SampleRate_write_folder(new_sample_rate, folder_path):
+def reshape_SampleRate_write_folder(new_sample_rate, folder_path):
     for filename in os.listdir(folder_path):
         filepath = os.path.join(folder_path, filename)
         if os.path.isfile(filepath) and filename.endswith('.wav'):
             if get_sample_rate(filepath) != new_sample_rate:
-                increase_SampleRate_write(filepath, new_sample_rate)
+                reshape_SampleRate_write(filepath, new_sample_rate)
 
 # increase sample rate and return waveform
 # audio_file: path to the audio file
 # new_sample_rate: new sample rate
 # return: waveform
-def increase_SampleRate_read(audio_file, new_sample_rate):
+def reshape_SampleRate_read(audio_file, new_sample_rate):
     waveform, sample_rate = load(audio_file)
     resampler = torchaudio.transforms.Resample(orig_freq=sample_rate, new_freq=new_sample_rate)
     waveform = resampler(waveform)
@@ -88,12 +88,13 @@ def increase_SampleRate_read(audio_file, new_sample_rate):
 
 ## Tested
 # plot waveform
-# waveform: waveform to plot
+# audio_file: path to the audio file
 # sample_rate: sample rate of the waveform
 # title: title of the plot
 # xlim: x limit of the plot
 # return: None
-def plot_spectrogram(waveform, sample_rate, title="Spectrogram", xlim=None):
+def plot_spectrogram(audio_file, title="Spectrogram", xlim=None):
+    waveform, sample_rate = load(audio_file)
     spectrogram = torchaudio.transforms.Spectrogram()(waveform)
     plt.figure()
     plt.imshow(spectrogram.log2()[0, :, :].numpy(), cmap='viridis', origin='lower', aspect='auto')
@@ -110,10 +111,11 @@ def plot_spectrogram(waveform, sample_rate, title="Spectrogram", xlim=None):
 
 ## Tested
 # play audio
-# waveform: waveform to play
+# audio_file: path to the audio file
 # sample_rate: sample rate of the waveform
 # return: None
-def play_audio(waveform, sample_rate):
+def play_audio(audio_file):
+    waveform, sample_rate = load(audio_file)
     return Audio(waveform.numpy(), rate=sample_rate)
 
 ## Tested
@@ -162,30 +164,47 @@ def check_sample_rate_consistency(folder_path):
 # AudioDataset class
 # mixed_dir: path to the directory containing mixed audio files
 # clean_dir: path to the directory containing clean audio files
-# return: None
+# return: mixed_spec, clean_spec
+
 class AudioDataset(Dataset):
-    def __init__(self, mixed_dir, clean_dir):
+    def __init__(self, mixed_dir, clean_dir, cache_dir="preprocessed_data"):
         self.mixed_files = [os.path.join(mixed_dir, f) for f in os.listdir(mixed_dir) if f.endswith('.wav')]
         self.clean_files = [os.path.join(clean_dir, f) for f in os.listdir(clean_dir) if f.endswith('.wav')]
+        self.cache_dir = cache_dir
+
+        os.makedirs(self.cache_dir, exist_ok=True)  # Create cache directory if it doesn't exist
 
     def __len__(self):
         return len(self.mixed_files)
 
     def __getitem__(self, idx):
-        mixed_waveform, _ = torchaudio.load(self.mixed_files[idx])
-        clean_waveform, _ = torchaudio.load(self.clean_files[idx])
+        mixed_cache_file = os.path.join(self.cache_dir, f"mixed_{idx}.pt")
+        clean_cache_file = os.path.join(self.cache_dir, f"clean_{idx}.pt")
 
-        # Compute spectrograms
-        mixed_spec = torchaudio.transforms.Spectrogram(n_fft=1022, win_length=1022, hop_length=256)(mixed_waveform)
-        clean_spec = torchaudio.transforms.Spectrogram(n_fft=1022, win_length=1022, hop_length=256)(clean_waveform)
+        # Check if cached data exists
+        if os.path.exists(mixed_cache_file) and os.path.exists(clean_cache_file):
+            mixed_spec = torch.load(mixed_cache_file)
+            clean_spec = torch.load(clean_cache_file)
+        else:
+            # Load and preprocess if not cached
+            mixed_waveform, _ = torchaudio.load(self.mixed_files[idx])
+            clean_waveform, _ = torchaudio.load(self.clean_files[idx])
 
-        # Random cropping
-        seed1 = random.randint(0, 2500)
-        seed2 = random.randint(0, 2500)
-        mixed_spec = transforms.RandomCrop(size=(256, 512))(mixed_spec) 
-        clean_spec = transforms.RandomCrop(size=(256, 512))(clean_spec) 
+            mixed_spec = torchaudio.transforms.Spectrogram(n_fft=1022, win_length=1022, hop_length=256)(mixed_waveform)
+            clean_spec = torchaudio.transforms.Spectrogram(n_fft=1022, win_length=1022, hop_length=256)(clean_waveform)
+
+            # Random cropping
+            seed1 = random.randint(0, 2500)
+            seed2 = random.randint(0, 2500)
+            mixed_spec = transforms.RandomCrop(size=(256, 512))(mixed_spec) 
+            clean_spec = transforms.RandomCrop(size=(256, 512))(clean_spec) 
+
+            # Save to cache
+            torch.save(mixed_spec, mixed_cache_file)
+            torch.save(clean_spec, clean_cache_file)
 
         return mixed_spec, clean_spec
+
 
 
 
