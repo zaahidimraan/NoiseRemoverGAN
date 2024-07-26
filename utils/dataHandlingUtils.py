@@ -4,7 +4,7 @@ import torch
 import matplotlib.pyplot as plt
 import mimetypes  
 from IPython.display import Audio
-from matplotlib import transforms
+from torchvision import transforms
 import torchaudio
 import torch
 from torch.utils.data import Dataset, DataLoader
@@ -173,6 +173,23 @@ class AudioDataset(Dataset):
         self.cache_dir = cache_dir
 
         os.makedirs(self.cache_dir, exist_ok=True)  # Create cache directory if it doesn't exist
+        # for idx in range(len(self.mixed_files)):
+        #     mixed_cache_file = os.path.join(self.cache_dir, f"mixed_{idx}.pt")
+        #     clean_cache_file = os.path.join(self.cache_dir, f"clean_{idx}.pt")
+        #     # Load and preprocess if not cached
+        #     mixed_waveform, _ = torchaudio.load(self.mixed_files[idx])
+        #     clean_waveform, _ = torchaudio.load(self.clean_files[idx])
+
+        #     mixed_spec = torchaudio.transforms.Spectrogram(n_fft=1022, win_length=1022, hop_length=256)(mixed_waveform)
+        #     clean_spec = torchaudio.transforms.Spectrogram(n_fft=1022, win_length=1022, hop_length=256)(clean_waveform)
+
+        #     # Random cropping
+        #     mixed_spec = transforms.RandomCrop(size=(256, 512),pad_if_needed=True)(mixed_spec) 
+        #     clean_spec = transforms.RandomCrop(size=(256, 512),pad_if_needed=True)(clean_spec) 
+
+        #     # Save to cache
+        #     torch.save(mixed_spec, mixed_cache_file)
+        #     torch.save(clean_spec, clean_cache_file)
 
     def __len__(self):
         return len(self.mixed_files)
@@ -194,10 +211,8 @@ class AudioDataset(Dataset):
             clean_spec = torchaudio.transforms.Spectrogram(n_fft=1022, win_length=1022, hop_length=256)(clean_waveform)
 
             # Random cropping
-            seed1 = random.randint(0, 2500)
-            seed2 = random.randint(0, 2500)
-            mixed_spec = transforms.RandomCrop(size=(256, 512))(mixed_spec) 
-            clean_spec = transforms.RandomCrop(size=(256, 512))(clean_spec) 
+            mixed_spec = transforms.RandomCrop(size=(256, 512),pad_if_needed=True)(mixed_spec) 
+            clean_spec = transforms.RandomCrop(size=(256, 512),pad_if_needed=True)(clean_spec) 
 
             # Save to cache
             torch.save(mixed_spec, mixed_cache_file)
