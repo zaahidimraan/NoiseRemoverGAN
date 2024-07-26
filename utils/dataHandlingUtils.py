@@ -197,6 +197,8 @@ class AudioDataset(Dataset):
     def __getitem__(self, idx):
         mixed_cache_file = os.path.join(self.cache_dir, f"mixed_{idx}.pt")
         clean_cache_file = os.path.join(self.cache_dir, f"clean_{idx}.pt")
+        mixed_spec = None
+        clean_spec = None
 
         # Check if cached data exists
         if os.path.exists(mixed_cache_file) and os.path.exists(clean_cache_file):
